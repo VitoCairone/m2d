@@ -8,6 +8,10 @@ World = {
     height: 400,
     center: [400, 200]
   },
+  dimensionals: [
+    { expanse: 800 },
+    { expanse: 400 }
+  ],
   bodies: [tester._results['initBody']]
 };
 
@@ -55,6 +59,10 @@ conjurer.makeCopyWorld = function (someWorld) {
       height: sW.place.height,
       center: shallowCopyArray(sW.place.center)
     },
+    dimensionals: [
+      { expanse: sW.dimensionals[0].expanse },
+      { expanse: sW.dimensionals[1].expanse }
+    ],
     bodies: shallowCopyArray(sW.bodies)
   };
 

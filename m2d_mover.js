@@ -25,11 +25,11 @@ var moverCount = movers.length;
 var bodiesCount = bodies.length;
 
 var makeDimensionedArr = function (initval) {
-  var dimensional = new Array(Om);
+  var dimensionedArr = new Array(Om);
   for (var Ax = 0; Ax < Om; Ax++) {
-    dimensional[Ax] = initval;
+    dimensionedArr[Ax] = initval;
   }
-  return dimensional;
+  return dimensionedArr;
 }
 
 var dimCodes = new Array(Om);
@@ -52,6 +52,7 @@ mover.freeMovement = function () {
       // console.log("Ax = " + Ax + " bodyInd = " + i + " center = " +
       //   A.dimensionals[Ax].center + " vel = " + A.dimensionals[Ax].velocity);
       A = movers[i];
+
       A.dimensionals[Ax].center += A.dimensionals[Ax].velocity;
       A.min[Ax] = A.dimensionals[Ax].center - A.dimensionals[Ax].expanseDown;
       A.max[Ax] = A.dimensionals[Ax].center + A.dimensionals[Ax].expanseUp;
@@ -59,16 +60,50 @@ mover.freeMovement = function () {
       //   A.dimensionals[Ax].center + " vel = " + A.dimensionals[Ax].velocity);
     }
   }
-}
+};
+
+// step two MVP hack: check bodies out of bounds and reflect back in bounds
+
+mover.reflectOOBBodies = function (body, Ax) {
+  for (var Ax = 0; Ax < Om; Ax++) {
+    for (var i = 0; i < moverCount; i++) {
+      A = movers[i];
+
+      if (A.min[Ax] < 0) {
+        A.dimensionals[Ax].center += -(A.min[Ax] * 2);
+        A.dimensionals[Ax].velocity *= -1;
+
+        A.min[Ax] = A.dimensionals[Ax].center - A.dimensionals[Ax].expanseDown;
+        A.max[Ax] = A.dimensionals[Ax].center + A.dimensionals[Ax].expanseUp;
+      } else if (A.max[Ax] > FW.dimensionals[Ax].expanse) {
+        var overExtent = A.max[Ax] - FW.dimensionals[Ax].expanse;
+        A.dimensionals[Ax].center -= overExtent * 2;
+        A.dimensionals[Ax].velocity *= -1;
+
+        A.min[Ax] = A.dimensionals[Ax].center - A.dimensionals[Ax].expanseDown;
+        A.max[Ax] = A.dimensionals[Ax].center + A.dimensionals[Ax].expanseUp;
+      }
+      // console.log("Ax = " + Ax + " bodyInd = " + i + " center = " + 
+      //   A.dimensionals[Ax].center + " vel = " + A.dimensionals[Ax].velocity);
+    }
+  }
+};
 
 // step omega: complete movement
 
 mover.completeMovement = function () {
-  // set the future world draft as the World,
-  // losing the old world reference and allowing it to be garbage collected
+  // this approach has tons of new memory allocation,
+  // copying, and freeing overhead;
+  // it would be much faster to do permutations in-place as much as possible
+
+  // set the future world draft as the World
+  oldWorld = World;
+
   World = FW;
   W = World;
-}
+
+  delete oldWorld;
+};
 
 // tester.addFunction('mover.freeMovement')
 

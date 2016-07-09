@@ -10,6 +10,7 @@ animater.animationLoop = setInterval(
     }
 
     mover.freeMovement();
+    mover.reflectOOBBodies();
     mover.completeMovement();
 
     painter.paintAll();
