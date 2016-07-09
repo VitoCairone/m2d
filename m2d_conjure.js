@@ -24,8 +24,27 @@ var shallowCopyArray = function (arr) {
 }
 
 conjurer.makeCopyBody = function (body) {
-  // hopefully this is a thing??
-  return body.copy();
+  // MVP hack
+  // TODO: lookup how to copy an object
+  var copyBody = {
+    mass: body.mass,
+    dimensionals: [
+      {
+        center: body.dimensionals[0].center,
+        expanseUp: body.dimensionals[0].expanseUp,
+        expanseDown: body.dimensionals[0].expanseDown,
+        velocity: body.dimensionals[0].velocity,
+      },
+      {
+        center: body.dimensionals[1].center,
+        expanseUp: body.dimensionals[1].expanseUp,
+        expanseDown: body.dimensionals[1].expanseDown,
+        velocity: body.dimensionals[1].velocity,
+      }
+    ]
+  };
+
+  return copyBody;
 }
 
 conjurer.makeCopyWorld = function (someWorld) {
@@ -49,4 +68,6 @@ conjurer.makeCopyWorld = function (someWorld) {
   for (var i = 0; i < cW.bodies.length; i++) {
     cW.bodies[i] = this.makeCopyBody(cW.bodies[i]);
   }
+
+  return cW;
 }

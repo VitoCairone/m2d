@@ -1,53 +1,74 @@
-// common use vars
+var mover = {};
 
 Array.prototype.diffSimple = function(a) {
   return this.filter(function(i) {return a.indexOf(i) < 0;});
 };
 
+console.log("!!");
+console.log(mover);
+// common use vars
+
 var A; // the first or only body
 var B; // the second body
 var W = World; // the true world body
 
+// make the future world draft
+
 var FW = conjurer.makeCopyWorld(W); // the hypothetical future world body
 
-// // shorthands
+// shorthands
 
-// var bodies = FW.bodies;
-// var movers = FW.movers();
-// var statics = FW.statics();
-// var moverCount = movers.length;
-// var bodiesCount = bodies.length;
+var bodies = FW.bodies;
+var movers = FW.bodies; // MVP hack
+var statics = []; // MVP hack
+var moverCount = movers.length;
+var bodiesCount = bodies.length;
 
-// var makeDimensional = function (initval) {
-//   var dimensional = new Array(Om);
-//   for (var Ax = 0; Ax < Om; Ax++) {
-//     dimensional[Ax] = initval;
-//   }
-//   return dimensional;
-// }
+var makeDimensionedArr = function (initval) {
+  var dimensional = new Array(Om);
+  for (var Ax = 0; Ax < Om; Ax++) {
+    dimensional[Ax] = initval;
+  }
+  return dimensional;
+}
 
-// var dimCodes = new Array(Om);
-// for (var i = 0; i < Om; i++) {
-//   dimCode[i] = i;
-// }
+var dimCodes = new Array(Om);
+for (var i = 0; i < Om; i++) {
+  dimCodes[i] = i;
+}
 
-// for (var i = 0; i < bodies.length; i++) {
-//   A = bodies[i];
-//   A.bodIdx = i;
-// }
+for (var i = 0; i < bodies.length; i++) {
+  A = bodies[i];
+  A.bodyIdx = i;
+  A.min = makeDimensionedArr(null);
+  A.max = makeDimensionedArr(null);
+}
 
-// // step one: Move all movers freely as if the rest of space were empty
+// step one: Move all movers freely as if the rest of space were empty
 
-// mover.freeMovement = function () {
-//   for (var Ax = 0; Ax < Om; Ax++) {
-//     for (var i = 0; i < moverCount; i++) {
-//       A = movers[i];
-//       A.center[Ax] += A.velocity[Ax];
-//       A.min = A.center[Ax] - A.expanseDown[Ax];
-//       A.max[Ax] = A.center[Ax] + A.expanseUp[Ax];
-//     }
-//   }
-// }
+mover.freeMovement = function () {
+  for (var Ax = 0; Ax < Om; Ax++) {
+    for (var i = 0; i < moverCount; i++) {
+      // console.log("Ax = " + Ax + " bodyInd = " + i + " center = " +
+      //   A.dimensionals[Ax].center + " vel = " + A.dimensionals[Ax].velocity);
+      A = movers[i];
+      A.dimensionals[Ax].center += A.dimensionals[Ax].velocity;
+      A.min[Ax] = A.dimensionals[Ax].center - A.dimensionals[Ax].expanseDown;
+      A.max[Ax] = A.dimensionals[Ax].center + A.dimensionals[Ax].expanseUp;
+      // console.log("Ax = " + Ax + " bodyInd = " + i + " center = " + 
+      //   A.dimensionals[Ax].center + " vel = " + A.dimensionals[Ax].velocity);
+    }
+  }
+}
+
+// step omega: complete movement
+
+mover.completeMovement = function () {
+  // set the future world draft as the World,
+  // losing the old world reference and allowing it to be garbage collected
+  World = FW;
+  W = World;
+}
 
 // tester.addFunction('mover.freeMovement')
 
