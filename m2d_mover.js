@@ -1,11 +1,9 @@
 var mover = {};
 
-Array.prototype.diffSimple = function(a) {
-  return this.filter(function(i) {return a.indexOf(i) < 0;});
-};
+// Array.prototype.diffSimple = function(a) {
+//   return this.filter(function(i) {return a.indexOf(i) < 0;});
+// };
 
-console.log("!!");
-console.log(mover);
 // common use vars
 
 var A; // the first or only body
@@ -14,50 +12,60 @@ var W = World; // the true world body
 
 // make the future world draft
 
-var FW = conjurer.makeCopyWorld(W); // the hypothetical future world body
+// var FW = conjurer.makeCopyWorld(W); // the hypothetical future world body
 
 // shorthands
 
-var bodies = FW.bodies;
-var movers = FW.bodies; // MVP hack
-var statics = []; // MVP hack
-var moverCount = movers.length;
-var bodiesCount = bodies.length;
+//var bodies = W.bodies;
+var movers = W.bodies; // MVP hack
+//var statics = []; // MVP hack
+//var moverCount = movers.length;
+//var bodiesCount = bodies.length;
 
-var makeDimensionedArr = function (initval) {
-  var dimensionedArr = new Array(Om);
-  for (var Ax = 0; Ax < Om; Ax++) {
-    dimensionedArr[Ax] = initval;
+// var makeDimensionedArr = function (initval) {
+//   var dimensionedArr = new Array(Om);
+//   for (var Ax = 0; Ax < Om; Ax++) {
+//     dimensionedArr[Ax] = initval;
+//   }
+//   return dimensionedArr;
+// }
+
+// var dimCodes = new Array(Om);
+// for (var i = 0; i < Om; i++) {
+//   dimCodes[i] = i;
+// }
+
+// for (var i = 0; i < bodies.length; i++) {
+//   A = bodies[i];
+//   A.bodyIdx = i;
+//   A.min = makeDimensionedArr(null);
+//   A.max = makeDimensionedArr(null);
+// }
+
+mover.overwriteBodyPresentWithFuture = function (body) {
+  var attribs = conjurer.bodyAttribs;
+  var attrib;
+  for (var i = 0; i < attribs.absolutes.length; i++) {
+    attrib = attribs.absolutes[i];
+    body.absolutes[i] = body.future.absolutes[i];
   }
-  return dimensionedArr;
-}
-
-var dimCodes = new Array(Om);
-for (var i = 0; i < Om; i++) {
-  dimCodes[i] = i;
-}
-
-for (var i = 0; i < bodies.length; i++) {
-  A = bodies[i];
-  A.bodyIdx = i;
-  A.min = makeDimensionedArr(null);
-  A.max = makeDimensionedArr(null);
+  for (var i = 0; i < attribs.dimensionals.length; i++) {
+    for (var Ax = 0; Ax < Om; Ax++) {
+      attrib = attribs.dimensionals[i];
+      body.dimensionals[Ax][attrib] = body.future.dimensionals[Ax][attrib];
+    }
+  }
 }
 
 // step one: Move all movers freely as if the rest of space were empty
 
 mover.freeMovement = function () {
   for (var Ax = 0; Ax < Om; Ax++) {
-    for (var i = 0; i < moverCount; i++) {
-      // console.log("Ax = " + Ax + " bodyInd = " + i + " center = " +
-      //   A.dimensionals[Ax].center + " vel = " + A.dimensionals[Ax].velocity);
+    for (var i = 0; i < movers.length; i++) {
       A = movers[i];
 
-      A.dimensionals[Ax].center += A.dimensionals[Ax].velocity;
-      A.min[Ax] = A.dimensionals[Ax].center - A.dimensionals[Ax].expanseDown;
-      A.max[Ax] = A.dimensionals[Ax].center + A.dimensionals[Ax].expanseUp;
-      // console.log("Ax = " + Ax + " bodyInd = " + i + " center = " + 
-      //   A.dimensionals[Ax].center + " vel = " + A.dimensionals[Ax].velocity);
+      A.future.dimensionals[Ax].center = A.dimensionals[Ax].center
+                                       + A.dimensionals[Ax].velocity;
     }
   }
 };
@@ -65,26 +73,30 @@ mover.freeMovement = function () {
 // step two MVP hack: check bodies out of bounds and reflect back in bounds
 
 mover.reflectOOBBodies = function (body, Ax) {
+  var min, max;
   for (var Ax = 0; Ax < Om; Ax++) {
-    for (var i = 0; i < moverCount; i++) {
+    for (var i = 0; i < movers.length; i++) {
       A = movers[i];
 
-      if (A.min[Ax] < 0) {
-        A.dimensionals[Ax].center += -(A.min[Ax] * 2);
-        A.dimensionals[Ax].velocity *= -1;
+      min = A.future.dimensionals[Ax].center
+            - A.future.dimensionals[Ax].expanseDown;
+      max = A.future.dimensionals[Ax].center
+            + A.future.dimensionals[Ax].expanseUp;
 
-        A.min[Ax] = A.dimensionals[Ax].center - A.dimensionals[Ax].expanseDown;
-        A.max[Ax] = A.dimensionals[Ax].center + A.dimensionals[Ax].expanseUp;
-      } else if (A.max[Ax] > FW.dimensionals[Ax].expanse) {
-        var overExtent = A.max[Ax] - FW.dimensionals[Ax].expanse;
-        A.dimensionals[Ax].center -= overExtent * 2;
-        A.dimensionals[Ax].velocity *= -1;
+      // console.log("min, max " + min + ", " + max + " vs 0," + W.dimensionals[Ax].expanse);
 
-        A.min[Ax] = A.dimensionals[Ax].center - A.dimensionals[Ax].expanseDown;
-        A.max[Ax] = A.dimensionals[Ax].center + A.dimensionals[Ax].expanseUp;
+      if (min < 0) {
+
+        A.future.dimensionals[Ax].center += -(min * 2);
+        A.future.dimensionals[Ax].velocity *= -1;
+
+      } else if (max > W.dimensionals[Ax].expanse) {
+
+        var overExtent = max - W.dimensionals[Ax].expanse;
+        A.future.dimensionals[Ax].center -= overExtent * 2;
+        A.future.dimensionals[Ax].velocity *= -1;
+
       }
-      // console.log("Ax = " + Ax + " bodyInd = " + i + " center = " + 
-      //   A.dimensionals[Ax].center + " vel = " + A.dimensionals[Ax].velocity);
     }
   }
 };
@@ -92,17 +104,10 @@ mover.reflectOOBBodies = function (body, Ax) {
 // step omega: complete movement
 
 mover.completeMovement = function () {
-  // this approach has tons of new memory allocation,
-  // copying, and freeing overhead;
-  // it would be much faster to do permutations in-place as much as possible
-
-  // set the future world draft as the World
-  oldWorld = World;
-
-  World = FW;
-  W = World;
-
-  delete oldWorld;
+  for (var i = 0; i < movers.length; i++) {
+    A = movers[i];
+    mover.overwriteBodyPresentWithFuture(A);
+  }
 };
 
 // tester.addFunction('mover.freeMovement')

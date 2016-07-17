@@ -36,32 +36,7 @@ tester.reset = function () {
   console.log("Tester reset");
 }
 
-var createBody = function () { 
-  return {
-    mass: 0,
-    dimensionals: [null, null]
-  };
-};
-
-tester.addFunction('createBody', function () { return createBody(); })
-
-var initBody = function (center2D, radius, velocity2D) {
-  var body = createBody();
-
-  for (var A = X; A < Z; A++) {
-    body.dimensionals[A] = {
-      center: center2D.oneD[A],
-      expanseUp: radius,
-      expanseDown: radius,
-      velocity: velocity2D[A]
-    };
-  }
-
-  return body;
-};
-
-tester.addFunction('initBody', function () {
-  return initBody({oneD: [200, 200]}, 8, [1, 1])
-});
+// The tester currently does not test itself, so this runs all of 0 tests
+// Add tester tests later
 
 tester.runAll();

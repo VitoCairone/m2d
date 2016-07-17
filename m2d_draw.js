@@ -5,6 +5,7 @@ var painter = {
   repainting: false,
   logging: true
 }
+
 painter.ctx = painter.canvas.getContext("2d");
 
 painter.addPainting = function (name, fxn) {
@@ -22,9 +23,9 @@ painter.paintAll = function () {
   var name;
   for (var i = 0; i < this._names.length; i++) {
     name = this._names[i];
-    if (painter.logging) {
-      console.log('Starting to paint ' + name);
-    }
+    // if (painter.logging) {
+    //   console.log('Starting to paint ' + name);
+    // }
     this._paintings[name](ctx);
   }
 }
@@ -35,20 +36,18 @@ painter.addPainting('drawBodies', function (ctx) {
   var x, y, w, h;
 
   for (var i = 0; i < World.bodies.length; i++) {
-    body = World.bodies[i];
 
-    // compute the coordinates and parameters in drawing space
-    body.place = {
-      center: [body.dimensionals[X].center, body.dimensionals[Y].center],
-      width: body.dimensionals[X].expanseUp + body.dimensionals[X].expanseDown, 
-      height: body.dimensionals[Y].expanseUp + body.dimensionals[Y].expanseDown 
+    ctx.beginPath();
+
+    for (var Ax = 0; Ax < Om; Ax++) {
+      body = World.bodies[i];
+      
+      body.dimensionals[Ax].drawExpanse = body.dimensionals[Ax].expanseUp
+                                        + body.dimensionals[Ax].expanseDown;
+
+      body.dimensionals[Ax].drawLowPt = body.dimensionals[Ax].center
+                                      - body.dimensionals[Ax].expanseDown;
     }
-    body.drawLoX = body.place.center[X] - body.place.width / 2;
-    body.drawLoY = body.place.center[Y] - body.place.height / 2;
-    x = body.drawLoX;
-    y = body.drawLoY;
-    w = body.place.width;
-    h = body.place.height;
 
     // set the fill color
     if (i == 0) {
@@ -59,9 +58,12 @@ painter.addPainting('drawBodies', function (ctx) {
       ctx.fillStyle = "#FFFF00"; //yellow
     }
 
-    // draw the Axis-Aligned Bounding Box (AABB) as a filled rectangle
-    ctx.fillRect(x, y, body.place.width, body.place.height);
+    x = body.dimensionals[X].drawLowPt;
+    y = body.dimensionals[Y].drawLowPt;
+    w = body.dimensionals[X].drawExpanse;
+    h = body.dimensionals[X].drawExpanse;
 
+    ctx.fillRect(x, y, w, h);
     bodiesDrawn += 1;
   }
 
@@ -69,14 +71,31 @@ painter.addPainting('drawBodies', function (ctx) {
 });
 
 painter.addPainting('drawBounds', function (ctx) {
+
+  // beginPath() before every stroke() to avoid memory leaks
+  
+  ctx.beginPath();
   ctx.strokeStyle = "#000000";
   ctx.rect(0, 0, World.place.width - 1, World.place.height - 1);
   ctx.stroke();
 
+  ctx.beginPath();
   ctx.strokeStyle = "#555555";
   ctx.rect(10, 10, World.place.width - 20, World.place.height - 20);
   ctx.stroke();
+
   return true;
+});
+
+painter.addPainting('foo', function (ctx) {
+  if (World.paintNo == undefined) {
+    World.paintNo = 0;
+  } else {
+    World.paintNo++;
+  }
+  if (World.paintNo % 1000 == 0) {
+    console.log("@@@@@@@@@@@ paintNo " + World.paintNo + " @@@@@@@@@@!");
+  }
 });
 
 painter.paintAll();

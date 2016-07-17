@@ -2,18 +2,64 @@ var conjurer = {};
 
 var World = {};
 
-World = {
-  place: {
-    width: 800,
-    height: 400,
-    center: [400, 200]
-  },
-  dimensionals: [
-    { expanse: 800 },
-    { expanse: 400 }
-  ],
-  bodies: [tester._results['initBody']]
+conjurer.createBody = function () { 
+  return {
+    absolutes: { mass: 10 },
+    dimensionals: [null, null],
+    future: {
+      absolutes: { mass: 10 },
+      dimensionals: [null, null]
+    }
+  };
 };
+
+tester.addFunction('createBody', function () { return conjurer.createBody(); })
+
+conjurer.bodyAttribs = {
+  absolutes: [
+    'mass'
+  ],
+  dimensionals: [
+    'center',
+    'expanseUp',
+    'expanseDown',
+    'velocity',
+    'drawLowPt',
+    'drawExpanse'
+  ]
+}
+
+conjurer.initBody = function (center2D, radius, velocity2D) {
+  var body = conjurer.createBody();
+
+  // TODO: use Array.shallowCopy instead of duplicating work
+  // directly
+
+  for (var Ax = 0; Ax < Om; Ax++) {
+    body.dimensionals[Ax] = {
+      center: center2D.oneD[Ax],
+      expanseUp: radius,
+      expanseDown: radius,
+      velocity: velocity2D[Ax],
+      drawLowPt: null, // set by Painter
+      drawExpanse: null // set by Painter
+    };
+    body.future.dimensionals[Ax] = {
+      center: center2D.oneD[Ax],
+      expanseUp: radius,
+      expanseDown: radius,
+      velocity: velocity2D[Ax],
+      drawLowPt: null, // set by Painter
+      drawExpanse: null // set by Painter
+    }
+  }
+
+  return body;
+};
+
+tester.addFunction('conjurer.initBody', function () {
+  return conjurer.initBody({oneD: [200, 200]}, 8, [1, 1])
+});
 
 var shallowCopyArray = function (arr) {
   // verbose version for clarity
@@ -27,6 +73,8 @@ var shallowCopyArray = function (arr) {
   return arr.concat([]);
 }
 
+// This is an MVP hack function which should not be routinely
+// invoked by a proper Mover or Animator
 conjurer.makeCopyBody = function (body) {
   // MVP hack
   // TODO: lookup how to copy an object
@@ -51,6 +99,8 @@ conjurer.makeCopyBody = function (body) {
   return copyBody;
 }
 
+// This is an MVP hack function which should not be routinely
+// invoked by a proper Mover or Animator
 conjurer.makeCopyWorld = function (someWorld) {
   var sW = someWorld;
   var cW = {
@@ -79,3 +129,25 @@ conjurer.makeCopyWorld = function (someWorld) {
 
   return cW;
 }
+
+
+// It is currently the Tester which creates bodies to move,
+// this is a bad pattern, eventually have the Director
+// invoke the real workflow
+
+tester.runAll();
+
+World = {
+  place: {
+    width: 400,
+    height: 300,
+    center: [200, 150]
+  },
+  dimensionals: [
+    { expanse: 400 },
+    { expanse: 300 }
+  ],
+  bodies: [tester._results['conjurer.initBody']]
+};
+
+console.log(World);
