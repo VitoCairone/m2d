@@ -37,7 +37,7 @@ conjurer.initBody = function (center2D, radius, velocity2D) {
 
   for (var Ax = 0; Ax < Om; Ax++) {
     body.dimensionals[Ax] = {
-      center: center2D.oneD[Ax],
+      center: center2D[Ax],
       expanseUp: radius,
       expanseDown: radius,
       velocity: velocity2D[Ax],
@@ -45,7 +45,7 @@ conjurer.initBody = function (center2D, radius, velocity2D) {
       drawExpanse: null // set by Painter
     };
     body.future.dimensionals[Ax] = {
-      center: center2D.oneD[Ax],
+      center: center2D[Ax],
       expanseUp: radius,
       expanseDown: radius,
       velocity: velocity2D[Ax],
@@ -58,7 +58,7 @@ conjurer.initBody = function (center2D, radius, velocity2D) {
 };
 
 tester.addFunction('conjurer.initBody', function () {
-  return conjurer.initBody({oneD: [200, 200]}, 8, [1, 1])
+  return conjurer.initBody([200, 200], 8, [1, 1])
 });
 
 var shallowCopyArray = function (arr) {
@@ -101,43 +101,47 @@ conjurer.makeCopyBody = function (body) {
 
 // This is an MVP hack function which should not be routinely
 // invoked by a proper Mover or Animator
-conjurer.makeCopyWorld = function (someWorld) {
-  var sW = someWorld;
-  var cW = {
-    place: {
-      width: sW.place.width,
-      height: sW.place.height,
-      center: shallowCopyArray(sW.place.center)
-    },
-    dimensionals: [
-      { expanse: sW.dimensionals[0].expanse },
-      { expanse: sW.dimensionals[1].expanse }
-    ],
-    bodies: shallowCopyArray(sW.bodies)
-  };
+// conjurer.makeCopyWorld = function (someWorld) {
+//   var sW = someWorld;
+//   var cW = {
+//     place: {
+//       width: sW.place.width,
+//       height: sW.place.height,
+//       center: shallowCopyArray(sW.place.center)
+//     },
+//     dimensionals: [
+//       { expanse: sW.dimensionals[0].expanse },
+//       { expanse: sW.dimensionals[1].expanse }
+//     ],
+//     bodies: shallowCopyArray(sW.bodies)
+//   };
 
-  // cW.bodies is now a seperate array, so
-  // push, pop, etc on sW.bodies and cW.bodies will not effect one another;
-  // HOWEVER, they point to the same objects,
-  // so permuting a body in one world will permute the body in all worlds! 
-  // to resolve this, walk over the copy world's bodies array
-  // and create copy bodies, placing them in the corresponding slots
+//   // cW.bodies is now a seperate array, so
+//   // push, pop, etc on sW.bodies and cW.bodies will not effect one another;
+//   // HOWEVER, they point to the same objects,
+//   // so permuting a body in one world will permute the body in all worlds! 
+//   // to resolve this, walk over the copy world's bodies array
+//   // and create copy bodies, placing them in the corresponding slots
 
-  for (var i = 0; i < cW.bodies.length; i++) {
-    cW.bodies[i] = this.makeCopyBody(cW.bodies[i]);
-  }
+//   for (var i = 0; i < cW.bodies.length; i++) {
+//     cW.bodies[i] = this.makeCopyBody(cW.bodies[i]);
+//   }
 
-  return cW;
-}
+//   return cW;
+// }
 
 
 // It is currently the Tester which creates bodies to move,
 // this is a bad pattern, eventually have the Director
 // invoke the real workflow
 
-tester.runAll();
+// tester.runAll();
 
-World = {
+conjurer.initWorld = function (worldParams) {
+  return worldParams;
+}
+
+tester.params.worldParams = {
   place: {
     width: 400,
     height: 300,
@@ -150,4 +154,6 @@ World = {
   bodies: [tester._results['conjurer.initBody']]
 };
 
-console.log(World);
+tester.addFunction('conjurer.initWorld', function () {
+  return conjurer.initWorld(this.params.worldParams);
+})

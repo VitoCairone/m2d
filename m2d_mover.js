@@ -10,6 +10,8 @@ var A; // the first or only body
 var B; // the second body
 var W = World; // the true world body
 
+console.log("mover:: W = " + W);
+
 // make the future world draft
 
 // var FW = conjurer.makeCopyWorld(W); // the hypothetical future world body
@@ -215,12 +217,50 @@ mover.completeMovement = function () {
 // //   }
 // // }
 
-// // // step seven: resolve basic overlaps by compaction or ricochet
+// step seven: resolve basic overlaps by compaction or ricochet
 
-// // for (var i = 0; i < collisionsArr.length; i++) {
-// //   A = collisionsArr[i][0];
-// //   B = collisionsArr[i][1];
-// //   if (!(A.collisionsOverride(B) || B.collisionsOverride(A))) {
+// var collisionOverride = function (bodyA, bodyB) {
+//   return false;
+// }
 
-// //   }
-// // }
+// for (var i = 0; i < collisionsArr.length; i++) {
+//   A = collisionsArr[i][0];
+//   B = collisionsArr[i][1];
+//   if ( !( collisionOverride(A, B) ) ) {    
+//     // step MVP hack seven-one:
+//     // place objects with their bounds (at tick end)
+//     // fixed to the same lines as the overlap lines,
+//     // so the overlap becomes instead the result
+//     // seperation, and exchange their velocities (presuming equal mass).
+
+//     // only required knowledge for determination
+//     // is dimension of collision
+//     // and pre-collide and post-collide positions;
+//     // mover does not track or use energy,
+//     // it only knows about positions, extents, and bounds
+
+//     // hypothetical shortcuts for HEAD-ON IMPACTS
+
+//     // ball-ball
+//     // overlap becomes seperation, exchange velocities
+
+//     // ball-wall
+//     // ball is reflected back by overlap,
+//     // reverses velocity sign
+
+//     // ball-block
+//     // block is halted at impact, ball continues away with
+//     // block's velocity plus reverse of its own
+
+//     // wall-wall
+//     // walls are halted and locked at impact point
+
+//     // wall-block
+//     // block is halted and locked to wall at impact point,
+//     // continuing together at wall's velocity
+
+//     // block-block
+//     // blocks are halted and locked to each other at impact point,
+//     // continuing together with averaged velocity
+//   }
+// }

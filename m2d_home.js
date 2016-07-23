@@ -3,7 +3,7 @@ var Y = 1;
 var Z = 2;
 var Om = 2;
 
-var tester = {_names: [], _functions: {}, _results: {}, _ran: {}};
+var tester = {_names: [], _functions: {}, _results: {}, _ran: {}, params: {}};
 
 tester.addFunction = function (name, fxn) {
   this._names.push(name);
