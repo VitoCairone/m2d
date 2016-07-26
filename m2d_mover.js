@@ -1,4 +1,14 @@
-var mover = {};
+var makeDimensionedArr = function (initVal) {
+  var dimensionedArr = new Array(Om);
+  for (var Ax = 0; Ax < Om; Ax++) { dimensionedArr[Ax] = initVal; }
+  return dimensionedArr;
+}
+
+var mover = {
+  overlapArr: makeDimensionedArr([]),
+  masterPairCodeDict: {},
+  masterPairCodeList: []
+};
 
 // Array.prototype.diffSimple = function(a) {
 //   return this.filter(function(i) {return a.indexOf(i) < 0;});
@@ -23,14 +33,6 @@ var movers = W.bodies; // MVP hack
 //var statics = []; // MVP hack
 //var moverCount = movers.length;
 //var bodiesCount = bodies.length;
-
-// var makeDimensionedArr = function (initval) {
-//   var dimensionedArr = new Array(Om);
-//   for (var Ax = 0; Ax < Om; Ax++) {
-//     dimensionedArr[Ax] = initval;
-//   }
-//   return dimensionedArr;
-// }
 
 // var dimCodes = new Array(Om);
 // for (var i = 0; i < Om; i++) {
@@ -114,153 +116,256 @@ mover.completeMovement = function () {
 
 // tester.addFunction('mover.freeMovement')
 
-// // // step two: Find all pairs which overlap each other
+// step two: Find all pairs which overlap each other
 
-// // var overlapArr = makeDimensional([]);
+// ***************************************************************************
+// COLLISION SECTION
+// ***************************************************************************
+mover.makePairCode = function (pair) {
+  return pair[0].bodIdx + '_' + pair[1].bodIdx;
+};
 
-// // var makePairCode = function(pair) {
-// //   return pair[0].bodIdx + '_' + pair[1].bodIdx;
-// // }
 
-// // var masterPairCodeDict = {};
-// // var masterPairCodeList = [];
+mover.findAllOverlaps = function () {
+  for (var Ax = 0; Ax < Om; Ax++) {
+    for (var i = 0; i < moverCount; i++) {
+      A = movers[i];
+      var testAgainst = movers;
+      for (var i2 = i + 1; i2 < testAgainst.length; i2++) {
+        B = testAgainst[i2];
+        if (bodiesOverlap(A, B)) {
+          var pair = [A, B];
+          this.overlappArr[Ax].push(pair);
 
-// // for (var Ax = 0; Ax < Om; Ax++) {
-// //   for (var i = 0; i < moverCount; i++) {
-// //     A = movers[i];
-// //     var testAgainst = movers + statics;
-// //     for (var i2 = i + 1; i2 < testAgainst.length; i2++) {
-// //       B = testAgainst[i2];
-// //       if (bodiesOverlap(A, B)) {
-// //         var pair = [A, B];
-// //         overlappArr[Ax].push(pair);
+          pairCode = this.makePairCode(pair);
+          if (masterPairCodeDict[pairCode] == undefined) {
+            this.masterPairCodeList.push(pairCode);
+            this.masterPairDict[pairCode] = pair;
+          }
+        }
+      }
+    }
+  }
+  console.log("masterPairCodeList >")
+  console.log(masterPairCodeList)
+}
 
-// //         pairCode = makePairCode(pair);
-// //         if (masterPairCodeDict[pairCode] == undefined) {
-// //           masterPairCodeList.push(pairCode);
-// //           masterPairDict[pairCode] = pair;
-// //         }
-// //       }
-// //     }
-// //   }
-// // }
+// step three: Find out by how many and which dimensions
+// each pair overlaps
 
-// // // step three: Find out by how many and which dimensions
-// // // each pair overlaps
+mover.findOverlapDimensions = function () {
+  var overlapDimsArrDict = {};
+  var pair = null;
+  var pairCode = null;
 
-// // var overlapDimsArrDict = {};
-// // var pair = null;
-// // var pairCode = null;
+  for (var Ax = 0; Ax < Om; Ax++) {
+    for (var i = 0; i < overlapArr[Ax].length; i++) {
+      pairCode = makePairCode(overlapArr[Ax][i]);
+      if (overlapDimsArrDict[pairCode] == undefined) {
+        overlapDimsArrDict[pairCode] = [Ax];
+      } else {
+        overlapDimsArrDict[pairCode].push(Ax);
+      }
+    }
+  }
 
-// // for (var Ax = 0; Ax < Om; Ax++) {
-// //   for (var i = 0; i < overlapArr[Ax].length; i++) {
-// //     pairCode = makePairCode(overlapArr[Ax][i]);
-// //     if (overlapDimsArrDict[pairCode] == undefined) {
-// //       overlapDimsArrDict[pairCode] = [Ax];
-// //     } else {
-// //       overlapDimsArrDict[pairCode].push(Ax);
-// //     }
-// //   }
-// // }
+  return overlapDimsArrDict;
+}
 
-// // // step four: find all pairs which overlap in every dimension,
-// // // these being the pairs which overlap in space
+// step four: find all pairs which overlap in every dimension,
+// these being the pairs which overlap in space
 
-// // var spaceOverlapPairs = [];
+mover.findOmniOverlappers = function () {
+  var spaceOverlapPairs = [];
 
-// // for (var i = 0; i < masterPairCodeList.length; i++) {
-// //   pairCode = masterPairCodeList[i];
-// //   if (overlapDimsArrDict[pairCode].length == Om) {
-// //     spaceOverlapPairs.push(masterPairCodeDict[pairCode]);
-// //   }
-// // } 
+  for (var i = 0; i < masterPairCodeList.length; i++) {
+    pairCode = masterPairCodeList[i];
+    if (overlapDimsArrDict[pairCode].length == Om) {
+      spaceOverlapPairs.push(masterPairCodeDict[pairCode]);
+    }
+  }
 
-// // // step six: check for illegal conditions and note legal
-// // // collisions
+  return spaceOverlapPairs;
+}
 
-// // var oldOverlapDimsArrDict = W.overlapDimsArrDict;
-// // var oldOverlapDimsArr = null;
-// // var uniqAx = null;
-// // var axises = null;
-// // var collision = null;
-// // var collisionsArr = [];
+// step six: check for illegal conditions and note legal
+// collisions
 
-// // for (var i = 0; i < spaceOverlapPairs.length; i++) {
-// //   pair = spaceOverlapPairs[i];
-// //   pairCode = makePairCode(pair);
-// //   oldOverlapDimArr = oldOverlapDimsArrDict[pairCode];
-// //   if (oldOverlapDimsArr != undefined) {
-// //     if (oldOverlapDimsArr.length == Om) {
-// //       // body was already spaceOverlapping, continue to allow
-// //       ;
-// //     } else if (oldOverlapDimsArr.length == Om - 1) {
-// //       // surface collision
-// //       uniqAx = dimCodes.diffSimple(oldOverlapDimsArr)[0];
-// //       collision = {
-// //         face: true,
-// //         pair: pair,
-// //         pairCode: pairCode,
-// //         axis: uniqAx
-// //       };
-// //       collisionsArr.push(pair);
-// //     } else {
-// //       // corner collision
-// //       axises = dimCodes.diffSimple(oldOverlapDimsArr);
-// //       collision = {
-// //         face: false,
-// //         pair: pair,
-// //         pairCode: pairCode,
-// //         axises: axises
-// //       };
-// //       collisionsArr.push(pair);
-// //     }
-// //   }
-// // }
+mover.determinCollisionList = function () {
+  var collisionsArr = [];
+
+  // NEED TO MAKE THIS WORK
+  var oldOverlapDimsArrDict = W.overlapDimsArrDict;
+
+  var uniqAx = null;
+  var axises = null;
+  var collision = null;
+
+  for (var i = 0; i < spaceOverlapPairs.length; i++) {
+    pair = spaceOverlapPairs[i];
+    pairCode = makePairCode(pair);
+    oldOverlapDimArr = oldOverlapDimsArrDict[pairCode];
+    if (oldOverlapDimsArr != undefined) {
+      
+
+      if (oldOverlapDimsArr.length == Om) {
+        // body was already spaceOverlapping, continue to allow
+        ;
+      } else {
+        var collision = {
+          pair: pair,
+          pairCode: pairCode,
+          axises: dimCodes.missingInArr(oldOverlapDimsArr)
+        }
+
+        if (oldOverlapDimsArr.length == Om - 1) {
+          // surface collision
+          collision.face = true;
+        } else {
+          // corner collision
+          collision.face = false;
+        }
+
+        collisionsArr.push(collision);
+      }
+    }
+  }
+
+  return collisionsArr;
+}
+
+
+// step six-opt: determine moments of collision
+
+mover.determineCollisionMoments = function () {
+  // same-sign (rear-end) collision, speed is |velocity difference|
+  // for opp-sign (head-on) collision, speed is |velA| + |velB|
+}
 
 // step seven: resolve basic overlaps by compaction or ricochet
 
-// var collisionOverride = function (bodyA, bodyB) {
-//   return false;
-// }
+// step seven MVP hack (all balls): resolve collision by trading
+// velocity and placing body interiors at lines of overlap at
+// end of tick
 
-// for (var i = 0; i < collisionsArr.length; i++) {
-//   A = collisionsArr[i][0];
-//   B = collisionsArr[i][1];
-//   if ( !( collisionOverride(A, B) ) ) {    
-//     // step MVP hack seven-one:
-//     // place objects with their bounds (at tick end)
-//     // fixed to the same lines as the overlap lines,
-//     // so the overlap becomes instead the result
-//     // seperation, and exchange their velocities (presuming equal mass).
+// takes nothing, returns nothing
+// alters no determinations
+// ASSIGNS FUTURE
+mover.resolveCollisions = function () {
 
-//     // only required knowledge for determination
-//     // is dimension of collision
-//     // and pre-collide and post-collide positions;
-//     // mover does not track or use energy,
-//     // it only knows about positions, extents, and bounds
+  var firstIsMostByCenterAmong = function (arr, Ax)  {
+    // MVP hack exploits fact that arr is always a pair
+    return arr[0].dimensionals[Ax].center > arr[1]/dimensionals[Ax].center;
+  };
 
-//     // hypothetical shortcuts for HEAD-ON IMPACTS
+  var getMin = function (body, Ax) {
+    return body.dimensionals[Ax].center - body.dimensionals[Ax].expanseDown;
+  };
 
-//     // ball-ball
-//     // overlap becomes seperation, exchange velocities
+  var getMax = function (body, Ax) {
+    return body.dimensionals[Ax].center + body.dimensionals[Ax].expanseUp;
+  };
 
-//     // ball-wall
-//     // ball is reflected back by overlap,
-//     // reverses velocity sign
+  var getExpanse = function (body, Ax) {
+    return body.dimensionals[Ax].expanseDown + body.dimensionals[Ax].expanseUp;
+  };
 
-//     // ball-block
-//     // block is halted at impact, ball continues away with
-//     // block's velocity plus reverse of its own
+  var moveToForceMin = function (body, point, Ax) {
+    body.future.dimensionals[Ax].center = place + body.dimensionals[Ax].expanseDown;
+  };
 
-//     // wall-wall
-//     // walls are halted and locked at impact point
+  var moveToForceMax = function (body, point, Ax) {
+    body.future.dimensionals[Ax].center = place - body.dimensionals[Ax].expanseUp;
+  };
 
-//     // wall-block
-//     // block is halted and locked to wall at impact point,
-//     // continuing together at wall's velocity
+  var Ax = collision.axises;
+  var time = 0;
+  var collision = null;
+  for (var i = 0; i < collisionsArr.length; i++) {
+    collision = collisionsArr[i];
+    A = collisionsArr[i].pair[0];
+    B = collisionsArr[i].pair[1];
+    for (var iAx = 0, Ax = 0; iAx < collision.axises; iAx++) {
+      Ax = collision.axises[iAx];
 
-//     // block-block
-//     // blocks are halted and locked to each other at impact point,
-//     // continuing together with averaged velocity
-//   }
-// }
+      var signOfA = Math.sign(A.dimensionals[Ax].velocity);
+      var signOfB = Math.sign(B.dimensionals[Ax].velocity);
+
+      var greaterBody = B;
+      var lesserBody = A;
+      var AisGreater = firstIsMostByCenterAmong([A, B], Ax);
+      if (AisGreater) {
+        greaterBody = A;
+        lesserBody = B;
+      }
+
+      if (signOfA == signOfB) {
+        // rear-end collision
+
+        // note: this actually may model a 'crash' type collision
+        // moreso than properly a rear-end one; doesn't a slow billiard
+        // struck by a fast one take all of the fast one's energy,
+        // moving forward at greater speed, and halting the one
+        // which struck it ??
+
+        // anyway, in this current version
+        // rear object slows to push forward object ahead faster
+        // velocities are averaged and particles continue
+        // together, sharing a border at the point of impact
+
+        var averageVelocity = (A.dimensionals[Ax].velocity
+                               + B.dimensionals[Ax].velocity) / 2;
+
+        // FUTURE ASSIGNMENT
+        // average velocities
+        A.future.dimensionals[Ax].velocity = averageVelocity;
+        B.future.dimensionals[Ax].velocity = averageVelocity;
+
+        var impactTime = getImpactTime([A, B], Ax);
+
+        var impactPlace = lesserBody.dimensionals[Ax].center
+                          + lesserBody.dimensionals[Ax].expanseUp
+                          + lesserBody.dimensionals[Ax].velocity * impactTime;
+
+        // FUTURE ASSIGNMENT
+        // set adjacency to point of collision
+        moveToForceMin(greaterBody, impactPlace, Ax);
+        moveToForceMax(lesserBody, impactPlace, Ax);
+
+      } else {
+        // head-on collision
+        // cases where a velocity is 0 should also obey this rule ??
+
+        // FUTURE ASSIGNMENT
+        // reverse velocities
+        A.future.dimensionals[Ax].velocity = B.dimensionals[Ax].velocity;
+        B.future.dimensionals[Ax].velocity = A.dimensionals[Ax].velocity;
+
+        // Determine orientation of colliders and lines of overlap
+
+        var greaterBody = B;
+        var lesserBody = A;
+        var AisGreater = firstIsMostByCenterAmong([A, B], Ax);
+        if (AisGreater) {
+          greaterBody = A;
+          lesserBody = B;
+        }
+
+        var highOverlapLine = getMax(lesserBody, Ax);
+        var lowOverlapLine = getMin(greaterBody, Ax);
+
+        // FUTURE ASSIGNMENT
+        // assign interior edges to lines of overlap
+        moveToForceMin(greaterBody, highOverlapLine, Ax);
+        moveToForceMax(lesserBody, lowOverlapLine, Ax);
+      }
+    }
+  }
+}
+
+
+
+
+
+
+
