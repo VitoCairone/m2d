@@ -37,8 +37,8 @@ painter.addPainting('drawBodies', function (ctx) {
 
   for (var i = 0; i < World.bodies.length; i++) {
 
-    console.log("draw:: World.bodies");
-    console.log(World.bodies);
+    //console.log("draw:: World.bodies");
+    //console.log(World.bodies);
 
     ctx.beginPath();
 

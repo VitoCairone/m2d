@@ -5,7 +5,7 @@ var makeDimensionedArr = function (initVal) {
 }
 
 var mover = {
-  overlapArr: makeDimensionedArr([]),
+  overlapDimsArrDict: {},
   masterPairCodeDict: {},
   masterPairCodeList: []
 };
@@ -31,13 +31,12 @@ console.log("mover:: W = " + W);
 //var bodies = W.bodies;
 var movers = W.bodies; // MVP hack
 //var statics = []; // MVP hack
-//var moverCount = movers.length;
 //var bodiesCount = bodies.length;
 
-// var dimCodes = new Array(Om);
-// for (var i = 0; i < Om; i++) {
-//   dimCodes[i] = i;
-// }
+var dimCodes = new Array(Om);
+for (var i = 0; i < Om; i++) {
+  dimCodes[i] = i;
+}
 
 // for (var i = 0; i < bodies.length; i++) {
 //   A = bodies[i];
@@ -126,50 +125,70 @@ mover.makePairCode = function (pair) {
 };
 
 
-mover.findAllOverlaps = function () {
-  for (var Ax = 0; Ax < Om; Ax++) {
-    for (var i = 0; i < moverCount; i++) {
-      A = movers[i];
-      var testAgainst = movers;
-      for (var i2 = i + 1; i2 < testAgainst.length; i2++) {
-        B = testAgainst[i2];
-        if (bodiesOverlap(A, B)) {
-          var pair = [A, B];
-          this.overlappArr[Ax].push(pair);
+mover.bodiesOverlap = function (bodyPair, Ax) {
+  var A = bodyPair[0];
+  var B = bodyPair[1];
 
+  var Amin = A.dimensionals[Ax].center - A.dimensionals[Ax].expanseDown;
+  var Amax = A.dimensionals[Ax].center + A.dimensionals[Ax].expanseUp;
+
+  var Bmin = B.dimensionals[Ax].center - B.dimensionals[Ax].expanseDown;
+  var Bmax = B.dimensionals[Ax].center + B.dimensionals[Ax].expanseUp;
+
+  if ((Amin > Bmax) || (Bmin > Amax)) {
+    return false;
+  }
+
+  return true;
+}
+
+mover.findAllOverlaps = function () {
+  // console.log(this.overlapDimsArrDict);
+  // // reset before rebuilding
+  // for (var i = 0; i < this.masterPairCodeList.length; i++) {
+  //   if (this.overlapDimsArrDict[pairCode] != undefined) {
+  //     this.overlapDimsArrDict[pairCode].length = 0;
+  //   }
+  // }
+  // this.masterPairCodeList.length = 0;
+  // console.log(this.overlapDimsArrDict);
+
+  // dirty memory version
+  this.overlapDimsArrDict = {};
+  this.masterPairCodeList = [];
+  this.masterPairCodeDict = {};
+
+  var testAgainst = movers;
+  for (var Ax = 0; Ax < Om; Ax++) {
+    for (var i = 0; i < movers.length; i++) {
+      A = movers[i];    
+      for (var i2 = i + 1; i2 < testAgainst.length; i2++) {
+        //console.log("Testing Ax="+Ax+" i="+i+" i2="+i2);
+        B = testAgainst[i2];
+        var pair = [A, B];
+        if (this.bodiesOverlap(pair, Ax)) {
+          //console.log("COLLISION")
           pairCode = this.makePairCode(pair);
-          if (masterPairCodeDict[pairCode] == undefined) {
+          if (this.masterPairCodeDict[pairCode] == undefined) {
             this.masterPairCodeList.push(pairCode);
-            this.masterPairDict[pairCode] = pair;
-          }
+            this.masterPairCodeDict[pairCode] = pair;
+            this.overlapDimsArrDict[pairCode] = [Ax];
+          } else {
+            this.overlapDimsArrDict[pairCode].push(Ax);
+          }          
+          //console.log(this.overlapDimsArrDict[pairCode]);
+        } else {
+          //console.log("pass")
         }
       }
     }
   }
-  console.log("masterPairCodeList >")
-  console.log(masterPairCodeList)
-}
 
-// step three: Find out by how many and which dimensions
-// each pair overlaps
-
-mover.findOverlapDimensions = function () {
-  var overlapDimsArrDict = {};
-  var pair = null;
-  var pairCode = null;
-
-  for (var Ax = 0; Ax < Om; Ax++) {
-    for (var i = 0; i < overlapArr[Ax].length; i++) {
-      pairCode = makePairCode(overlapArr[Ax][i]);
-      if (overlapDimsArrDict[pairCode] == undefined) {
-        overlapDimsArrDict[pairCode] = [Ax];
-      } else {
-        overlapDimsArrDict[pairCode].push(Ax);
-      }
-    }
-  }
-
-  return overlapDimsArrDict;
+  // console.log("this.masterPairCodeList> ")
+  // console.log(this.masterPairCodeList)
+  // console.log("this.masterPairCodeDict> ")
+  // console.log(this.masterPairCodeDict);
+  // console.log("<@<@");
 }
 
 // step four: find all pairs which overlap in every dimension,
@@ -178,10 +197,10 @@ mover.findOverlapDimensions = function () {
 mover.findOmniOverlappers = function () {
   var spaceOverlapPairs = [];
 
-  for (var i = 0; i < masterPairCodeList.length; i++) {
-    pairCode = masterPairCodeList[i];
-    if (overlapDimsArrDict[pairCode].length == Om) {
-      spaceOverlapPairs.push(masterPairCodeDict[pairCode]);
+  for (var i = 0; i < this.masterPairCodeList.length; i++) {
+    pairCode = this.masterPairCodeList[i];
+    if (this.overlapDimsArrDict[pairCode].length == Om) {
+      spaceOverlapPairs.push(this.masterPairCodeDict[pairCode]);
     }
   }
 
@@ -191,23 +210,48 @@ mover.findOmniOverlappers = function () {
 // step six: check for illegal conditions and note legal
 // collisions
 
-mover.determinCollisionList = function () {
+mover.dimCodesMissingFromArr = function (arr) {
+    //prefer conversion to sets and set difference
+    //if arr is large; in practice it should always be
+    //very small and generally smaller tham dimCodes,
+    //i.e., length 0, 1, or 2.
+
+    var missing = [];
+    
+    for (var i = 0; i < dimCodes.length; i++) {
+      var found = false;
+
+      for (var i2 = 0; i2 < arr.length; i2++) {
+        if (i == arr[i2]) {
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) {
+        missing.push(i);
+      }
+    }
+
+    return missing;
+  }
+
+mover.determineCollisionList = function () {
   var collisionsArr = [];
 
   // NEED TO MAKE THIS WORK
-  var oldOverlapDimsArrDict = W.overlapDimsArrDict;
+  var oldOverlapDimsArrDict = W.overlapDimsArrDict || {};
 
   var uniqAx = null;
   var axises = null;
   var collision = null;
+  var oldOverlapDimsArr = null;
 
-  for (var i = 0; i < spaceOverlapPairs.length; i++) {
-    pair = spaceOverlapPairs[i];
-    pairCode = makePairCode(pair);
-    oldOverlapDimArr = oldOverlapDimsArrDict[pairCode];
+  for (var i = 0; i < this.spaceOverlapPairs.length; i++) {
+    pair = this.spaceOverlapPairs[i];
+    pairCode = this.makePairCode(pair);
+    oldOverlapDimsArr = oldOverlapDimsArrDict[pairCode];
     if (oldOverlapDimsArr != undefined) {
-      
-
       if (oldOverlapDimsArr.length == Om) {
         // body was already spaceOverlapping, continue to allow
         ;
@@ -215,7 +259,7 @@ mover.determinCollisionList = function () {
         var collision = {
           pair: pair,
           pairCode: pairCode,
-          axises: dimCodes.missingInArr(oldOverlapDimsArr)
+          axises: this.dimCodesMissingFromArr(oldOverlapDimsArr)
         }
 
         if (oldOverlapDimsArr.length == Om - 1) {
@@ -237,9 +281,18 @@ mover.determinCollisionList = function () {
 
 // step six-opt: determine moments of collision
 
-mover.determineCollisionMoments = function () {
-  // same-sign (rear-end) collision, speed is |velocity difference|
-  // for opp-sign (head-on) collision, speed is |velA| + |velB|
+mover.collisionTimeOfOrderedPair = function ([lesserBody, greaterBody], Ax) {
+  var bodyLdims = lesserBody.dimensionals[Ax];
+  var bodyGdims = greaterBody.dimensionals[Ax];
+
+  var speed = Math.abs(bodyLdims.velocity - bodyGdims.velocity);
+
+  var loMax = bodyLdims.center - bodyLdims.expanseDown;
+  var hiMin = bodyGdims.center + bodyGdims.expanseUp;
+
+  var seperation = hiMin - loMax;
+
+  return seperation / speed;
 }
 
 // step seven: resolve basic overlaps by compaction or ricochet
@@ -253,9 +306,8 @@ mover.determineCollisionMoments = function () {
 // ASSIGNS FUTURE
 mover.resolveCollisions = function () {
 
-  var firstIsMostByCenterAmong = function (arr, Ax)  {
-    // MVP hack exploits fact that arr is always a pair
-    return arr[0].dimensionals[Ax].center > arr[1]/dimensionals[Ax].center;
+  var firstIsMostByCenterAmong = function (pair, Ax)  {
+    return pair[0].dimensionals[Ax].center > pair[1].dimensionals[Ax].center;
   };
 
   var getMin = function (body, Ax) {
@@ -271,25 +323,20 @@ mover.resolveCollisions = function () {
   };
 
   var moveToForceMin = function (body, point, Ax) {
-    body.future.dimensionals[Ax].center = place + body.dimensionals[Ax].expanseDown;
+    body.future.dimensionals[Ax].center = point + body.dimensionals[Ax].expanseDown;
   };
 
   var moveToForceMax = function (body, point, Ax) {
-    body.future.dimensionals[Ax].center = place - body.dimensionals[Ax].expanseUp;
+    body.future.dimensionals[Ax].center = point - body.dimensionals[Ax].expanseUp;
   };
 
-  var Ax = collision.axises;
-  var time = 0;
   var collision = null;
-  for (var i = 0; i < collisionsArr.length; i++) {
-    collision = collisionsArr[i];
-    A = collisionsArr[i].pair[0];
-    B = collisionsArr[i].pair[1];
-    for (var iAx = 0, Ax = 0; iAx < collision.axises; iAx++) {
+  for (var i = 0; i < this.collisionsArr.length; i++) {
+    collision = this.collisionsArr[i];
+    A = collision.pair[0];
+    B = collision.pair[1];
+    for (var iAx = 0, Ax = 0; iAx < collision.axises.length; iAx++) {
       Ax = collision.axises[iAx];
-
-      var signOfA = Math.sign(A.dimensionals[Ax].velocity);
-      var signOfB = Math.sign(B.dimensionals[Ax].velocity);
 
       var greaterBody = B;
       var lesserBody = A;
@@ -298,6 +345,9 @@ mover.resolveCollisions = function () {
         greaterBody = A;
         lesserBody = B;
       }
+
+      var signOfA = Math.sign(A.dimensionals[Ax].velocity);
+      var signOfB = Math.sign(B.dimensionals[Ax].velocity);
 
       if (signOfA == signOfB) {
         // rear-end collision
@@ -321,7 +371,8 @@ mover.resolveCollisions = function () {
         A.future.dimensionals[Ax].velocity = averageVelocity;
         B.future.dimensionals[Ax].velocity = averageVelocity;
 
-        var impactTime = getImpactTime([A, B], Ax);
+        var orderedPair = [lesserBody, greaterBody];
+        var impactTime = this.collisionTimeOfOrderedPair(orderedPair, Ax);
 
         var impactPlace = lesserBody.dimensionals[Ax].center
                           + lesserBody.dimensionals[Ax].expanseUp
@@ -363,9 +414,42 @@ mover.resolveCollisions = function () {
   }
 }
 
+mover.moveOverlappers = function () {
+  //console.log("Entering moveOverlappers, step zero of five");
 
+  // populates this.masterPairCodeList
+  //           and this.masterPairCodeDict
+  // console.log(this.overlapDimsArrDict);
+  this.findAllOverlaps();
+  //console.log("Finished step one of five");
+  //console.log("upon leaving this.findAllOverlaps, this.overlapDimsArrDict >")
+  //console.log(this.overlapDimsArrDict);
 
+  // uses masterPairCodeList/Dict
+  // returns a a spaceOverLapPairs it creates
+  this.spaceOverlapPairs = this.findOmniOverlappers();
+  if (this.spaceOverlapPairs.length > 0) {
+    console.log("upon leaving mover.findOmniOverlappers, mover.spaceOverlapPairs >");
+    console.log(this.spaceOverlapPairs);''
+  }
 
+  // uses spaceOverlapPairs and
+  //      and W.overlapDimsArrDict
+  // returns a collisionsArr it creates
+  this.collisionsArr = this.determineCollisionList();
+  if (this.collisionsArr.length > 0) {
+    console.log("upon leaving mover.determineCollisionList, mover.collisionsArr >");
+    console.log(this.collisionsArr)
+  }
 
+  // Uses this.collisionsArr
+  // alters .future of movers
+  if (this.collisionsArr.length > 0) {
+    mover.resolveCollisions();
+    console.log("left mover.resolveCollisions");
+  }
 
-
+  // this should really be done at the start
+  // of the next tick
+  W.overlapDimsArrDict = this.overlapDimsArrDict;
+}

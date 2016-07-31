@@ -2,6 +2,8 @@ var conjurer = {};
 
 var World = {};
 
+var g_bodIdx = 1;
+
 conjurer.createBody = function () { 
   return {
     absolutes: { mass: 10 },
@@ -9,7 +11,8 @@ conjurer.createBody = function () {
     future: {
       absolutes: { mass: 10 },
       dimensionals: [null, null]
-    }
+    },
+    bodIdx: g_bodIdx++
   };
 };
 
