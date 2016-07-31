@@ -349,7 +349,7 @@ mover.resolveCollisions = function () {
       var signOfA = Math.sign(A.dimensionals[Ax].velocity);
       var signOfB = Math.sign(B.dimensionals[Ax].velocity);
 
-      if (signOfA == signOfB) {
+      if (false) {
         // rear-end collision
 
         // note: this actually may model a 'crash' type collision

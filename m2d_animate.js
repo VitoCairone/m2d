@@ -2,7 +2,7 @@ painter.repainting = true;
 
 var animater = {};
 World.tick = 0;
-var haltTick = 1500;
+var haltTick = 100000;
 
 animater.animationLoop = setInterval(
   function () { 
