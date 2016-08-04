@@ -2,7 +2,7 @@ painter.repainting = true;
 
 var animater = {};
 World.tick = 0;
-var haltTick = 0;
+var haltTick = 1000;
 
 animater.animationLoop = setInterval(
   function () { 
@@ -32,6 +32,8 @@ animater.animationLoop = setInterval(
       // }
 
       mover.impartGravity();
+
+      mover.impartRepulsion();
 
       mover.freeMovement();
 

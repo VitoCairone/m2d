@@ -433,11 +433,85 @@ mover.moveOverlappers = function () {
 mover.impartGravity = function () {
   //console.log("@@@ m.iG")
   //return;
-  var body = null;
   for (var i = 0; i < movers.length; i++) {
-    body = movers[i];
-    console.log("Body " + i + " from " + body.dimensionals[Y].velocity);
-    body.dimensionals[Y].velocity += 0.025;
-    console.log("to " + body.dimensionals[Y].velocity);
+    A = movers[i];
+    // console.log("Body " + i + " from " + A.dimensionals[Y].velocity);
+    A.dimensionals[Y].velocity += 0.025;
+    // console.log("to " + A.dimensionals[Y].velocity);
   }
+};
+
+mover.impartRepulsion = function () {
+
+  var electroMoveDirection = dimCodes.concat([]);
+  var netElectroForce = dimCodes.concat([]);
+
+  var distance, distance2, distance2sum;
+
+  for (var i = 0; i < movers.length; i++) {
+    A = movers[i];
+
+    for (var Ax = 0; Ax < Om; Ax++) {
+      netElectroForce[Ax] = 0;
+    }
+
+    //console.log("@@@@ nEF=" + netElectroForce);
+
+    // check the relative draws from all other repulsors
+    for (var i2 = 0; i2 < movers.length; i2++) {
+      if (i == i2) continue;
+      
+      B = movers[i2];
+      distance2sum = 0;
+
+      for (var Ax = 0; Ax < Om; Ax++) {
+        distance = A.dimensionals[Ax].center - B.dimensionals[Ax].center;
+        distance2 = distance * distance;
+
+        //console.log("For " + i + " vs " + i2 + " dist=" + distance);
+
+        var shouldRepelDown = (B.dimensionals[Ax].center > A.dimensionals[Ax].center);
+        if (shouldRepelDown) {
+          electroMoveDirection[Ax] = -distance2;
+        } else {
+          electroMoveDirection[Ax] = distance2;
+        }
+        distance2sum += distance2;
+      }
+
+      for (var Ax = 0; Ax < Om; Ax++) {
+        // the force in this direction is divided by the
+        // distance2 to normalize it; so this is 1 in
+        // the direction when all motion is in in that direction,
+        // and 0 when no motion is in the direction.
+        electroMoveDirection[Ax] /= distance2sum;
+
+        // the strength of the force, however, is not 1 overall;
+        // force strength also drops off proportional to
+        // distance2. We assume all charges are 1, so their
+        // product is also 1.
+
+        // apply force constant
+        electroMoveDirection[Ax] *= 1;
+
+        electroMoveDirection[Ax] /= distance2sum;
+
+        netElectroForce[Ax] += electroMoveDirection[Ax];
+      }
+
+    }
+
+
+    // having finished surveying all other movers,
+    // impart netElectroForce as impulse on the body
+
+    // console.log("For body " + i + " nEF=" + netElectroForce);
+    for (var Ax = 0; Ax < Om; Ax++) {
+      A.dimensionals[Ax].velocity += netElectroForce[Ax];
+    }
+
+
+  } // end A loop
+
+  return;
 };
