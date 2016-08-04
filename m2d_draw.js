@@ -18,6 +18,10 @@ painter.paintAll = function () {
   var canvas = this.canvas;
   if (this.repainting) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.beginPath();
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, World.place.width - 1, World.place.height - 1);
   }
 
   var name;
@@ -54,11 +58,11 @@ painter.addPainting('drawBodies', function (ctx) {
 
     // set the fill color
     if (i == 0) {
-      ctx.fillStyle = "#00FF00"; //green
+      ctx.fillStyle = "#FFFF00"; //green
     } else if (i < 10) {
       ctx.fillStyle = "#00FFFF"; //cyan
     } else {
-      ctx.fillStyle = "#FFFF00"; //yellow
+      ctx.fillStyle = "#00FF00"; //yellow
     }
 
     x = body.dimensionals[X].drawLowPt;

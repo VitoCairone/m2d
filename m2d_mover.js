@@ -69,6 +69,8 @@ mover.freeMovement = function () {
 
       A.future.dimensionals[Ax].center = A.dimensionals[Ax].center
                                        + A.dimensionals[Ax].velocity;
+
+      A.future.dimensionals[Ax].velocity = A.dimensionals[Ax].velocity;
     }
   }
 };
@@ -349,67 +351,31 @@ mover.resolveCollisions = function () {
       var signOfA = Math.sign(A.dimensionals[Ax].velocity);
       var signOfB = Math.sign(B.dimensionals[Ax].velocity);
 
-      if (false) {
-        // rear-end collision
+      // head-on collision
+      // cases where a velocity is 0 should also obey this rule ??
 
-        // note: this actually may model a 'crash' type collision
-        // moreso than properly a rear-end one; doesn't a slow billiard
-        // struck by a fast one take all of the fast one's energy,
-        // moving forward at greater speed, and halting the one
-        // which struck it ??
+      // FUTURE ASSIGNMENT
+      // reverse velocities
+      A.future.dimensionals[Ax].velocity = B.dimensionals[Ax].velocity;
+      B.future.dimensionals[Ax].velocity = A.dimensionals[Ax].velocity;
 
-        // anyway, in this current version
-        // rear object slows to push forward object ahead faster
-        // velocities are averaged and particles continue
-        // together, sharing a border at the point of impact
+      // Determine orientation of colliders and lines of overlap
 
-        var averageVelocity = (A.dimensionals[Ax].velocity
-                               + B.dimensionals[Ax].velocity) / 2;
-
-        // FUTURE ASSIGNMENT
-        // average velocities
-        A.future.dimensionals[Ax].velocity = averageVelocity;
-        B.future.dimensionals[Ax].velocity = averageVelocity;
-
-        var orderedPair = [lesserBody, greaterBody];
-        var impactTime = this.collisionTimeOfOrderedPair(orderedPair, Ax);
-
-        var impactPlace = lesserBody.dimensionals[Ax].center
-                          + lesserBody.dimensionals[Ax].expanseUp
-                          + lesserBody.dimensionals[Ax].velocity * impactTime;
-
-        // FUTURE ASSIGNMENT
-        // set adjacency to point of collision
-        moveToForceMin(greaterBody, impactPlace, Ax);
-        moveToForceMax(lesserBody, impactPlace, Ax);
-
-      } else {
-        // head-on collision
-        // cases where a velocity is 0 should also obey this rule ??
-
-        // FUTURE ASSIGNMENT
-        // reverse velocities
-        A.future.dimensionals[Ax].velocity = B.dimensionals[Ax].velocity;
-        B.future.dimensionals[Ax].velocity = A.dimensionals[Ax].velocity;
-
-        // Determine orientation of colliders and lines of overlap
-
-        var greaterBody = B;
-        var lesserBody = A;
-        var AisGreater = firstIsMostByCenterAmong([A, B], Ax);
-        if (AisGreater) {
-          greaterBody = A;
-          lesserBody = B;
-        }
-
-        var highOverlapLine = getMax(lesserBody, Ax);
-        var lowOverlapLine = getMin(greaterBody, Ax);
-
-        // FUTURE ASSIGNMENT
-        // assign interior edges to lines of overlap
-        moveToForceMin(greaterBody, highOverlapLine, Ax);
-        moveToForceMax(lesserBody, lowOverlapLine, Ax);
+      var greaterBody = B;
+      var lesserBody = A;
+      var AisGreater = firstIsMostByCenterAmong([A, B], Ax);
+      if (AisGreater) {
+        greaterBody = A;
+        lesserBody = B;
       }
+
+      var highOverlapLine = getMax(lesserBody, Ax);
+      var lowOverlapLine = getMin(greaterBody, Ax);
+
+      // FUTURE ASSIGNMENT
+      // assign interior edges to lines of overlap
+      moveToForceMin(greaterBody, highOverlapLine, Ax);
+      moveToForceMax(lesserBody, lowOverlapLine, Ax);
     }
   }
 }
@@ -452,4 +418,26 @@ mover.moveOverlappers = function () {
   // this should really be done at the start
   // of the next tick
   W.overlapDimsArrDict = this.overlapDimsArrDict;
-}
+
+  // Because mover has no handling for a body being squeezed between
+  // two approachers, objects will slip over others incorrectly
+  // in this case; need to handle compressing collisions.
+  // This is a more critical issue than second-pass
+  // overlap, which currently is wrongly caught just one
+  // tick after as a new collision. But, not what's needed
+  // next for platformer demo -- next item needed there
+  // is proper diverse collision handling, e.g. stopping,
+  // destroy-and-alter.
+};
+
+mover.impartGravity = function () {
+  //console.log("@@@ m.iG")
+  //return;
+  var body = null;
+  for (var i = 0; i < movers.length; i++) {
+    body = movers[i];
+    console.log("Body " + i + " from " + body.dimensionals[Y].velocity);
+    body.dimensionals[Y].velocity += 0.025;
+    console.log("to " + body.dimensionals[Y].velocity);
+  }
+};

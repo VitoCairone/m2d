@@ -2,11 +2,11 @@ painter.repainting = true;
 
 var animater = {};
 World.tick = 0;
-var haltTick = 100000;
+var haltTick = 0;
 
 animater.animationLoop = setInterval(
   function () { 
-    if (World.tick < haltTick) {
+    if (haltTick == 0 || World.tick < haltTick) {
       World.tick++;
       if (World.lastTiming == undefined) {
         World.lastTiming = performance.now();
@@ -31,7 +31,10 @@ animater.animationLoop = setInterval(
       //   }
       // }
 
+      mover.impartGravity();
+
       mover.freeMovement();
+
       mover.reflectOOBBodies();
 
       mover.moveOverlappers();
