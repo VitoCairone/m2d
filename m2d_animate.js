@@ -2,7 +2,7 @@ painter.repainting = true;
 
 var animater = {};
 World.tick = 0;
-var haltTick = 1000;
+var haltTick = 500;
 
 animater.animationLoop = setInterval(
   function () { 
@@ -13,10 +13,10 @@ animater.animationLoop = setInterval(
       }
 
       if(World.tick % 60 == 0) {
-        console.log(World.tick);
-        console.log(performance.now() - World.lastTiming);
+        console.log("Tick: " + World.tick);
+        console.log("realTime equivalent: "+ Math.round(60.0 / 1000.0 * (performance.now() - World.lastTiming),0));
         World.lastTiming = performance.now();
-        console.log(World.bodies);
+        //console.log(World.bodies);
       }
 
       // var body;
@@ -31,7 +31,7 @@ animater.animationLoop = setInterval(
       //   }
       // }
 
-      mover.impartGravity();
+      //mover.impartGravity();
 
       mover.impartRepulsion();
 

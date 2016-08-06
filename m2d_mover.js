@@ -241,7 +241,6 @@ mover.dimCodesMissingFromArr = function (arr) {
 mover.determineCollisionList = function () {
   var collisionsArr = [];
 
-  // NEED TO MAKE THIS WORK
   var oldOverlapDimsArrDict = W.overlapDimsArrDict || {};
 
   var uniqAx = null;
@@ -252,30 +251,39 @@ mover.determineCollisionList = function () {
   for (var i = 0; i < this.spaceOverlapPairs.length; i++) {
     pair = this.spaceOverlapPairs[i];
     pairCode = this.makePairCode(pair);
+
+    var collision = {
+      pair: pair,
+      pairCode: pairCode
+    }
+
     oldOverlapDimsArr = oldOverlapDimsArrDict[pairCode];
-    if (oldOverlapDimsArr != undefined) {
+    if (oldOverlapDimsArr == undefined) {
+      // corner collision
+      collision.axises = dimCodes.concat([]);
+    } else {
+      // face collision
       if (oldOverlapDimsArr.length == Om) {
-        // body was already spaceOverlapping, continue to allow
-        ;
+        // was already colliding, ignore
+        continue;
       } else {
-        var collision = {
-          pair: pair,
-          pairCode: pairCode,
-          axises: this.dimCodesMissingFromArr(oldOverlapDimsArr)
-        }
-
-        if (oldOverlapDimsArr.length == Om - 1) {
-          // surface collision
-          collision.face = true;
-        } else {
-          // corner collision
-          collision.face = false;
-        }
-
-        collisionsArr.push(collision);
+        // the new axis to collide
+        // is the axis of the collision
+        collision.axises = this.dimCodesMissingFromArr(oldOverlapDimsArr);
       }
     }
-  }
+
+    // ??
+    // if (oldOverlapDimsArr.length == Om - 1) {
+    //   // surface collision
+    //   collision.face = true;
+    // } else {
+    //   // corner collision
+    //   collision.face = false;
+    // }
+
+    collisionsArr.push(collision);
+  } // end overlap pairs loop
 
   return collisionsArr;
 }
@@ -395,8 +403,8 @@ mover.moveOverlappers = function () {
   // returns a a spaceOverLapPairs it creates
   this.spaceOverlapPairs = this.findOmniOverlappers();
   if (this.spaceOverlapPairs.length > 0) {
-    console.log("upon leaving mover.findOmniOverlappers, mover.spaceOverlapPairs >");
-    console.log(this.spaceOverlapPairs);''
+    console.log("[" + W.tick + "] upon leaving mover.findOmniOverlappers, mover.spaceOverlapPairs >");
+    console.log(this.spaceOverlapPairs);
   }
 
   // uses spaceOverlapPairs and
@@ -404,7 +412,7 @@ mover.moveOverlappers = function () {
   // returns a collisionsArr it creates
   this.collisionsArr = this.determineCollisionList();
   if (this.collisionsArr.length > 0) {
-    console.log("upon leaving mover.determineCollisionList, mover.collisionsArr >");
+    console.log("[" + W.tick + "] upon leaving mover.determineCollisionList, mover.COLLISIONSARR >");
     console.log(this.collisionsArr)
   }
 
@@ -412,7 +420,7 @@ mover.moveOverlappers = function () {
   // alters .future of movers
   if (this.collisionsArr.length > 0) {
     mover.resolveCollisions();
-    console.log("left mover.resolveCollisions");
+    console.log("[" + W.tick + "] left mover.resolveCollisions");
   }
 
   // this should really be done at the start
@@ -471,20 +479,22 @@ mover.impartRepulsion = function () {
         //console.log("For " + i + " vs " + i2 + " dist=" + distance);
 
         var shouldRepelDown = (B.dimensionals[Ax].center > A.dimensionals[Ax].center);
-        if (shouldRepelDown) {
-          electroMoveDirection[Ax] = -distance2;
+        if (!shouldRepelDown) {
+          electroMoveDirection[Ax] = -Math.abs(distance);
         } else {
-          electroMoveDirection[Ax] = distance2;
+          electroMoveDirection[Ax] = Math.abs(distance);
         }
         distance2sum += distance2;
       }
+
+      var spaceDistance = Math.sqrt(distance2sum);
 
       for (var Ax = 0; Ax < Om; Ax++) {
         // the force in this direction is divided by the
         // distance2 to normalize it; so this is 1 in
         // the direction when all motion is in in that direction,
         // and 0 when no motion is in the direction.
-        electroMoveDirection[Ax] /= distance2sum;
+        electroMoveDirection[Ax] /= spaceDistance;
 
         // the strength of the force, however, is not 1 overall;
         // force strength also drops off proportional to
@@ -492,7 +502,7 @@ mover.impartRepulsion = function () {
         // product is also 1.
 
         // apply force constant
-        electroMoveDirection[Ax] *= 1;
+        electroMoveDirection[Ax] *= 0.5;
 
         electroMoveDirection[Ax] /= distance2sum;
 
