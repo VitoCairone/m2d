@@ -320,12 +320,20 @@ mover.resolveCollisions = function () {
     return pair[0].dimensionals[Ax].center > pair[1].dimensionals[Ax].center;
   };
 
-  var getMin = function (body, Ax) {
+  var getOldMin = function (body, Ax) {
     return body.dimensionals[Ax].center - body.dimensionals[Ax].expanseDown;
   };
 
-  var getMax = function (body, Ax) {
+  var getOldMax = function (body, Ax) {
     return body.dimensionals[Ax].center + body.dimensionals[Ax].expanseUp;
+  };
+
+  var getNewMax = function (body, Ax) {
+    return body.future.dimensionals[Ax].center + body.dimensionals[Ax].expanseUp;
+  };
+
+  var getNewMin = function (body, Ax) {
+    return body.future.dimensionals[Ax].center - body.dimensionals[Ax].expanseDown;
   };
 
   var getExpanse = function (body, Ax) {
@@ -359,33 +367,229 @@ mover.resolveCollisions = function () {
       var signOfA = Math.sign(A.dimensionals[Ax].velocity);
       var signOfB = Math.sign(B.dimensionals[Ax].velocity);
 
-      // head-on collision
-      // cases where a velocity is 0 should also obey this rule ??
+      var highOverlapLine = getNewMax(lesserBody, Ax);
+      var lowOverlapLine = getNewMin(greaterBody, Ax);
 
-      // FUTURE ASSIGNMENT
-      // reverse velocities
-      A.future.dimensionals[Ax].velocity = B.dimensionals[Ax].velocity;
-      B.future.dimensionals[Ax].velocity = A.dimensionals[Ax].velocity;
+      var collidersClassesCode = 0;
+      var WALL_WALL = 100100;
+      var WALL_FIGHTER = 100200;
+      var FIGHTER_WALL = 200100;
+      var FIGHTER_FIGHTER = 200200;
 
-      // Determine orientation of colliders and lines of overlap
+      switch (collidersClassesCode) {
+        case WALL_WALL:
+          // Illegal; walls should have exactly the same
+          // edges and exactly the same velocity, ensuring
+          // equality despite any computer math
+          console.log("ERROR: Wall-wall pair "+A.bodIdx+"-"+B.bodIdx+" collided.")
+          // prefer to halt here
+          // current actual behavior is the to do nothing,
+          // making Walls all actually phasic to one other
+          break;
+        case WALL_FIGHTER:
+          ; //fallthrough
+        case FIGHTER_WALL:
+          console.log("WTF");
+          var a = 1 / 0;
+          break;
+          // Wall is unchanged
 
-      var greaterBody = B;
-      var lesserBody = A;
-      var AisGreater = firstIsMostByCenterAmong([A, B], Ax);
-      if (AisGreater) {
-        greaterBody = A;
-        lesserBody = B;
+          // Fighter is halted against the wall and set to
+          // Wall's velocity so that they continue together
+          var theFighter = A;
+          var theWall = B;
+          if (collidersClassesCode == WALL_FIGHTER) {
+            theWall = A;
+            theFighter = B;
+          }
+
+          var fighterFutureDims = theFighter.future.dimensionals[Ax];
+          var wallFutureDims = theWall.future.dimensionals[Ax];
+
+          // FUTURE ASSIGNMENT
+          fighterFutureDims.velocity = wallFutureDims.velocity;
+          if (theFighter == greaterBody) {
+            moveToForceMin(theFighter, getNewMax(theWall, Ax), Ax);
+          } else {
+            moveToForceMax(theFighter, getNewMin(theWall, Ax), Ax);
+          }
+
+          // the old Vel is chosen because it seems more correct
+          // then the free new Vel which is not actually reached
+          var oldFighterVel = theFighter.dimensionals[Ax].velocity;
+          var mass = theFighter.absolutes.mass || 1;
+
+          var velocityChange = oldFighterVel - wallFutureDims.velocity;
+
+          if (dealer != undefined) {
+            if (dealer.isImpactVulernable(theFighter)) {
+              // it is the Fighter's mass and velocity changed used
+              // because it is that energy which is otherwise
+              // observed to vanish from the system
+              var damage = 1/2 * mass * velocityChange * velocityChange;
+              dealer.dealDamage(theFighter, damage);
+            }
+          }
+          break;
+
+        case FIGHTER_FIGHTER:
+          console.log("WTF2");
+          var a = 1 / 0;
+          break;
+
+          // The faster body slows to the same speed as the slower,
+          // but retaining the Faster's sign; the Slower body also takes
+          // the Faster's sign (this may be no change)
+          var theFaster = A;
+          var theSlower = B; 
+
+          if (Math.abs(B.dimensionals[Ax].velocity) > Math.abs(A.dimensionals[Ax].velocity)) {
+            theFaster = B;
+            theSlower = A;
+          }
+
+          // again, this should really be interpolated to moment of
+          // impact for better correctness
+          var fasterVelocity = theFaster.dimensionals[Ax].future.velocity;
+          var slowerVelocity = theSlower.dimensionals[Ax].future.velocity;
+
+          var fasterBodyIsRising = (fasterVelocity >= 0);
+          var fasterSign = (fasterBodyIsRising ? 1 : -1);
+
+          var speedChange = Math.abs(fasterVelocity) - Math.abs(slowerVelocity);
+
+          // FUTURE ASSIGNMENT
+          // match velocities exactly
+          var newVelocity = Math.abs(slowerVelocity) * fasterSign;
+          theFaster.dimensionals[Ax].future.velocity = newVelocity;
+          theSlower.dimensionals[Ax].future.velocity = newVelocity;
+
+          // feeling lazy
+          var pretendImpactPoint = (getOldMin(greaterBody, Ax) + getOldMax(lesserBody, Ax))/2;
+
+          // FUTURE ASSIGNMENT
+          // set adjacent at impact point
+          moveToForceMin(greaterBody, pretendImpactPoint, Ax);
+          moveToForceMax(lesserBody, pretendImpactPoint, Ax);
+
+          // more correctly, bodies should continue after impact
+          // together for the remaining portion of tock
+
+          // the Faster's mass is used because the Faster's energy
+          // is the energy otherwise apparently lost from the system
+          var mass = theFaster.absolutes.mass || 1;
+
+          if (dealer != undefined) {
+            var damage = 1/2 * mass * speedChange * speedChange;
+            dealer.dealDamage(theFighter, damage);
+          }
+          break;
+
+        default: 
+          // FUTURE ASSIGNMENT
+          // reverse velocities
+          A.future.dimensionals[Ax].velocity = B.dimensionals[Ax].velocity;
+          B.future.dimensionals[Ax].velocity = A.dimensionals[Ax].velocity;
+
+          // FUTURE ASSIGNMENT
+          // assign interior edges to lines of overlap
+          moveToForceMin(greaterBody, highOverlapLine, Ax);
+          moveToForceMax(lesserBody, lowOverlapLine, Ax);
+          break;
       }
+      // switch (collidersClassesCode) {
+      //   case WALL_WALL:
+      //     // Illegal; walls should have 0 velocity
+      //     // and also share edges
+      //     console.log("ERROR: Wall " + A.bodIdx + " colliding with Wall " + B.bodIx);
+      //     break;
 
-      var highOverlapLine = getMax(lesserBody, Ax);
-      var lowOverlapLine = getMin(greaterBody, Ax);
+      //   case WALL_FIGHTER:
+      //     // fallthrough to FIGHTER_WALL
 
-      // FUTURE ASSIGNMENT
-      // assign interior edges to lines of overlap
-      moveToForceMin(greaterBody, highOverlapLine, Ax);
-      moveToForceMax(lesserBody, lowOverlapLine, Ax);
-    }
-  }
+      //   case FIGHTER_WALL:
+      //     // Wall's velocity cannot be changed
+      //     // Fighter is halted against wall,
+      //     // and takes impact damage if vulnerable
+
+      //     var theFighter = A;
+      //     var theWall = B;
+      //     if (isAWall(A)) {
+      //       theWall = A;
+      //       theFighter = B;
+      //     }
+
+      //     fighterFutureDims = theFighter.future.dimensionals[Ax];
+      //     wallFutureDims = theWall.future.dimensionals[Ax];
+
+      //     velocityDiff = fighterFutureDims.velocity - wallFutureDims.velocity;
+
+      //     // FUTURE ASSIGNMENT
+      //     // halt Fighter relative to Wall
+      //     fighterFutureDims.velocity = wallFutureDims.velocity;
+
+      //     // FUTURE ASSIGNMENT
+      //     // place Fighter against Wall
+      //     if (theFighter == greaterBody) {
+      //       moveToForceMin(theFighter, getNewMax(theWall), Ax);
+      //     } else {
+      //       moveToForceMax(theFighter, getNewMin(theWall), Ax);
+      //     }
+
+      //     break;
+
+      //   case FIGHTER_FIGHTER:
+      //     var velocityA = A.future.dimensionals[Ax].velocity;
+      //     var velocityB = B.future.dimensionals[Ax].velocity;
+
+
+      //     if (velocityA * velocityB < 0) {
+      //       // Both fighters push all their velocity in its direction
+      //       // as damage, halting at a mutually agreeable zero,
+      //       // which is ???.
+
+      //       // FUTURE ASSIGNMENT
+      //       // halt both fighters at 0 (???)
+      //       A.future.dimensionals[Ax].velocity = 0;
+      //       B.future.dimensionals[Ax].velocity = 0;
+
+      //       // FUTURE ASSIGNMENT
+      //       // place fighters adjacent at collision point
+      //       moveToForceMin(greaterBody, collisionPoint, Ax);
+      //       moveToForceMax(lesserBody, collisionPoint, Ax);
+
+      //     } else {
+      //       var smallerVelocity = velocityA;
+      //       if (Math.abs(velocityB) < Math.abs(velocityA)) {
+      //         smallerVelocity = velocityB;
+      //       }
+      //     }
+
+      //     var newVelocity = smallerVelocity;
+      //     if (velocityA * velocityB < 0) {
+      //       newVelocity *= -1;
+      //     }
+
+      //     // FUTURE ASSIGNMENT
+      //     // set both fighters at the smaller velocity
+      //     A.future.dimensionals[Ax].velocity = newVelocity;
+      //     B.future.dimensionals[Ax].velocity = newVelocity;
+
+      //     break;
+
+      //   default:
+      //     // FUTURE ASSIGNMENT
+      //     // reverse velocities
+      //     A.future.dimensionals[Ax].velocity = B.dimensionals[Ax].velocity;
+      //     B.future.dimensionals[Ax].velocity = A.dimensionals[Ax].velocity;
+
+      //     // FUTURE ASSIGNMENT
+      //     // assign interior edges to lines of overlap
+      //     moveToForceMin(greaterBody, highOverlapLine, Ax);
+      //     moveToForceMax(lesserBody, lowOverlapLine, Ax);
+      // } // end collide-type switch
+    } // end over Ax (note: refactor - should happen inside collide-type)
+  } // end over collisions
 }
 
 mover.moveOverlappers = function () {
@@ -441,10 +645,30 @@ mover.moveOverlappers = function () {
 mover.impartGravity = function () {
   //console.log("@@@ m.iG")
   //return;
+
+  // this is a very simple 'numerical' method to applying gravity;
+  // it is not precisely right in all circumstances, e.g.
+  // this situation: If a ball at 0 velocity,
+  // placed 1 unit above a wall,
+  // gains a down gravity velocity of -5 units/tick,
+  // then it rebounds off the wall beneath at 5,
+  // and ends up placed 4 units above the wall with velocity +5;
+  // In fact gravity would only accelerate the ball down
+  // for a short time, and then be working against the movement
+  // on the upward portion, so the ball should actually have
+  // a velocity much less than 5 and be much less than
+  // 4 up; in fact we know it could not end up any higher
+  // than 1, since it was initially 1 away and moved
+  // only by the gravity impart.
+
+  // However, when gravity's velocity/tick is small, this is a
+  // pretty good approximation which may be observed to work well;
+  // we see it exhibit reasonably proper oscillating behavior.
+
   for (var i = 0; i < movers.length; i++) {
     A = movers[i];
     // console.log("Body " + i + " from " + A.dimensionals[Y].velocity);
-    A.dimensionals[Y].velocity += 0.025;
+    A.dimensionals[Y].velocity += 0.002;
     // console.log("to " + A.dimensionals[Y].velocity);
   }
 };

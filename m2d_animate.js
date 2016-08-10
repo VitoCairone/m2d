@@ -2,7 +2,7 @@ painter.repainting = true;
 
 var animater = {};
 World.tick = 0;
-var haltTick = 500;
+var haltTick = 0;
 
 animater.animationLoop = setInterval(
   function () { 
@@ -31,9 +31,12 @@ animater.animationLoop = setInterval(
       //   }
       // }
 
-      //mover.impartGravity();
+      mover.impartGravity();
 
-      mover.impartRepulsion();
+      // this routine either attracts or repulses all bodies
+      // equally according their distance squared --
+      // has no notion of mass or charge
+      // mover.impartRepulsion();
 
       mover.freeMovement();
 
