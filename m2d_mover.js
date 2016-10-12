@@ -316,6 +316,19 @@ mover.collisionTimeOfOrderedPair = function ([lesserBody, greaterBody], Ax) {
 // ASSIGNS FUTURE
 mover.resolveCollisions = function () {
 
+  var getCollidersClassesCode = function (bodyA, bodyB) {
+    var getColliderCode = function (body) {
+      switch (body.collideType) {
+        case 'WALL': return 100;
+        case 'FIGHTER': return 200;
+        case 'BALL': return 300;
+        case 'PEW': return 400;
+        default: return 0;
+      }
+    }
+    return 1000 * getColliderCode(bodyA) + getColliderCode(bodyB);
+  };
+
   var firstIsMostByCenterAmong = function (pair, Ax)  {
     return pair[0].dimensionals[Ax].center > pair[1].dimensionals[Ax].center;
   };
@@ -370,7 +383,8 @@ mover.resolveCollisions = function () {
       var highOverlapLine = getNewMax(lesserBody, Ax);
       var lowOverlapLine = getNewMin(greaterBody, Ax);
 
-      var collidersClassesCode = 0;
+      var collidersClassesCode = getCollidersClassesCode(A, B);
+      // console.log("gCC = " + collidersClassesCode);
       var WALL_WALL = 100100;
       var WALL_FIGHTER = 100200;
       var FIGHTER_WALL = 200100;
@@ -386,6 +400,7 @@ mover.resolveCollisions = function () {
           // current actual behavior is the to do nothing,
           // making Walls all actually phasic to one other
           break;
+
         case WALL_FIGHTER:
           ; //fallthrough
         case FIGHTER_WALL:
@@ -433,13 +448,11 @@ mover.resolveCollisions = function () {
           break;
 
         case FIGHTER_FIGHTER:
-          console.log("WTF2");
-          var a = 1 / 0;
-          break;
+          // two bodies colliding head-on retain their sum velocity
 
-          // The faster body slows to the same speed as the slower,
-          // but retaining the Faster's sign; the Slower body also takes
-          // the Faster's sign (this may be no change)
+          // bodies colliding head-tail are slowed to the blocking
+          // body's velocity
+
           var theFaster = A;
           var theSlower = B; 
 
@@ -450,22 +463,35 @@ mover.resolveCollisions = function () {
 
           // again, this should really be interpolated to moment of
           // impact for better correctness
-          var fasterVelocity = theFaster.dimensionals[Ax].future.velocity;
-          var slowerVelocity = theSlower.dimensionals[Ax].future.velocity;
+          var velocityA = A.future.dimensionals[Ax].velocity;
+          var velocityB = B.future.dimensionals[Ax].velocity;
 
-          var fasterBodyIsRising = (fasterVelocity >= 0);
-          var fasterSign = (fasterBodyIsRising ? 1 : -1);
+          var velocityDiff = velocityA - velocityB;
+          // +60 +50 becomes 10 or -10
+          // +60 -50 becomes 110 or -110
 
-          var speedChange = Math.abs(fasterVelocity) - Math.abs(slowerVelocity);
+          var velocitySum = velocityA + velocityB;
+          // +60 -50 becomes 10
+          // +60 +50 becomes 110
 
-          // FUTURE ASSIGNMENT
-          // match velocities exactly
-          var newVelocity = Math.abs(slowerVelocity) * fasterSign;
-          theFaster.dimensionals[Ax].future.velocity = newVelocity;
-          theSlower.dimensionals[Ax].future.velocity = newVelocity;
+          var fasterVelocity = theFaster.future.dimensionals[Ax].velocity;
+          var slowerVelocity = theSlower.future.dimensionals[Ax].velocity;
+
+          // when heading in the same direction, slow
+          // the faster mover to match velocity, otherwise
+          // set to the sum
+          var newVelocity = slowerVelocity;
+          if (velocityA * velocityB < 0) {
+            newVelocity = velocitySum;
+          }
 
           // feeling lazy
           var pretendImpactPoint = (getOldMin(greaterBody, Ax) + getOldMax(lesserBody, Ax))/2;
+
+          // FUTURE ASSIGNMENT
+          // set exactly matched velocities
+          theFaster.future.dimensionals[Ax].velocity = newVelocity;
+          theSlower.future.dimensionals[Ax].velocity = newVelocity;
 
           // FUTURE ASSIGNMENT
           // set adjacent at impact point
@@ -475,14 +501,19 @@ mover.resolveCollisions = function () {
           // more correctly, bodies should continue after impact
           // together for the remaining portion of tock
 
-          // the Faster's mass is used because the Faster's energy
-          // is the energy otherwise apparently lost from the system
-          var mass = theFaster.absolutes.mass || 1;
+          var massA = A.absolutes.mass || 1;
+          var massB = B.absolutes.mass || 1;
 
-          if (dealer != undefined) {
-            var damage = 1/2 * mass * speedChange * speedChange;
-            dealer.dealDamage(theFighter, damage);
+          var velocityChangeA = newVelocity - velocityA;
+          var velocityChangeB = newVelocity - velocityB;
+
+          if (typeof dealer != 'undefined') {
+            var damageToA = 1/2 * B.absolutes.mass * velocityChangeB * velocityChangeB;
+            var damageToB = 1/2 * A.absolutes.mass * velocityChangeA * velocityChangeA;
+            dealer.dealDamage(A, damageToA);
+            dealer.dealDamage(B, damageToB);
           }
+
           break;
 
         default: 

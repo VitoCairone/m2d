@@ -3,6 +3,9 @@ var Y = 1;
 var Z = 2;
 var Om = 2;
 
+var DOWN = 0;
+var UP = 1;
+
 var tester = {_names: [], _functions: {}, _results: {}, _ran: {}, params: {}};
 
 tester.addFunction = function (name, fxn) {

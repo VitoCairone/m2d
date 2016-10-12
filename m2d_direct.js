@@ -21,9 +21,13 @@ director.worldParams = {
 director.worldParams.bodies = [];
 for (var i = 0; i < 5; i++) {
   for (var j = 0; j < 5; j++) {
-    director.worldParams.bodies.push(
-      conjurer.initBody([80 + i * 40, 20 + j * 40], 8, [0, 0])
-    );
+    var newBody = conjurer.initBody([80 + i * 40, 20 + j * 40], 8, [0, 0]);
+    if (true) {
+      newBody.collideType = 'BALL';
+    } else {
+      newBody.collideType = 'FIGHTER';
+    }
+    director.worldParams.bodies.push(newBody);
   }
 }
 

@@ -45,7 +45,9 @@ conjurer.initBody = function (center2D, radius, velocity2D) {
       expanseDown: radius,
       velocity: velocity2D[Ax],
       drawLowPt: null, // set by Painter
-      drawExpanse: null // set by Painter
+      drawExpanse: null, // set by Painter
+      stackedToWall: [false, false], // UP/DOWN
+      stackedAgainst: [[null], [null]] //UP/DOWN lists of bodies stacked against
     };
     body.future.dimensionals[Ax] = {
       center: center2D[Ax],
@@ -53,7 +55,9 @@ conjurer.initBody = function (center2D, radius, velocity2D) {
       expanseDown: radius,
       velocity: velocity2D[Ax],
       drawLowPt: null, // set by Painter
-      drawExpanse: null // set by Painter
+      drawExpanse: null, // set by Painter
+      stackedToWall: [false, false], // UP/DOWN
+      stackedAgainst: [[null], [null]] //UP/DOWN lists of bodies stacked against
     }
   }
 
@@ -78,29 +82,29 @@ var shallowCopyArray = function (arr) {
 
 // This is an MVP hack function which should not be routinely
 // invoked by a proper Mover or Animator
-conjurer.makeCopyBody = function (body) {
-  // MVP hack
-  // TODO: lookup how to copy an object
-  var copyBody = {
-    mass: body.mass,
-    dimensionals: [
-      {
-        center: body.dimensionals[0].center,
-        expanseUp: body.dimensionals[0].expanseUp,
-        expanseDown: body.dimensionals[0].expanseDown,
-        velocity: body.dimensionals[0].velocity,
-      },
-      {
-        center: body.dimensionals[1].center,
-        expanseUp: body.dimensionals[1].expanseUp,
-        expanseDown: body.dimensionals[1].expanseDown,
-        velocity: body.dimensionals[1].velocity,
-      }
-    ]
-  };
+// conjurer.makeCopyBody = function (body) {
+//   // MVP hack
+//   // TODO: lookup how to copy an object
+//   var copyBody = {
+//     mass: body.mass,
+//     dimensionals: [
+//       {
+//         center: body.dimensionals[0].center,
+//         expanseUp: body.dimensionals[0].expanseUp,
+//         expanseDown: body.dimensionals[0].expanseDown,
+//         velocity: body.dimensionals[0].velocity,
+//       },
+//       {
+//         center: body.dimensionals[1].center,
+//         expanseUp: body.dimensionals[1].expanseUp,
+//         expanseDown: body.dimensionals[1].expanseDown,
+//         velocity: body.dimensionals[1].velocity,
+//       }
+//     ]
+//   };
 
-  return copyBody;
-}
+//   return copyBody;
+// }
 
 // This is an MVP hack function which should not be routinely
 // invoked by a proper Mover or Animator
